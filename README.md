@@ -4,28 +4,30 @@ Universal sovereign software installer for the T1NK3R-V3R53 ecosystem. Built wit
 
 ## What it does
 
-- **10 OS tabs** — Tiny11/Windows, CachyOS, Bazzite, Fedora, Ubuntu/Debian (+ Ubuntu Studio), Arch, macOS, iPadOS, Android
+- **9 OS tabs** — Tiny11/Windows, CachyOS, Bazzite, Fedora, Ubuntu/Debian, Arch, macOS, iPadOS, Android
 - **JUMPSTART God Mode** — curated "arm all" bootstrap block per OS: base tools, runtimes (nvm/Rust/pipx), Ollama, companions
-- **Companion Models** — canonical T1NK3R-V3R53 roster pre-populated: Alfred (qwen2.5:14b), Sage (gemma2:9b), Scout (mistral-nemo), Spark (llama3.2:3b), Coach + Solace (llama3.1:8b), Steward + Wren (mistral:7b), Daisy (phi3:mini), Luna (llama3.2:latest)
+- **Companion Models** — installer-default roster pulled per OS: Alfred (mistral:latest), Sage (mistral:latest), Steward (phi3:latest), Scout (phi3:mini), Daisy (llama3.2:1b), Coach (llama3.2:3b), Spark (qwen2.5:3b), Solace (llama3.2:latest), Luna (llama3.2:latest), plus nomic-embed-text for RAG embeddings
+- **Full category library** — beyond JUMPSTART, each OS tab has dozens of expandable categories: Development, CLI AI Tools, Gaming, Audio/DAW/VST, Game Engines/3D, 3D Printing (Bambu P1S), SDR/RF (T1NK3R.FM), Homelab/Self-Hosted, Networking/Security, Digital Art/Video, Writing/Knowledge, and more (count varies by OS)
 - **Script generator** — outputs `.ps1` (Windows) or `.sh` (Linux/macOS) from your selections, deduped and ordered correctly
 - **OpenRouter importer** — writes your OR key to the correct OS-specific path, generates setup script
-- **ROCm support** — AMD RX 6600 / RDNA2 paths on CachyOS, Bazzite, Fedora, Ubuntu, Arch
+- **ROCm support** — AMD RX 6600 / RDNA2 paths on CachyOS, Bazzite, and Fedora
 - **Cross-OS mode** — use any tab from any OS; cross-platform warning banners activate automatically
-- **Native Tauri execution** — when running as a built app, scripts can execute directly with live terminal output
-- **Ubuntu Studio detection** — auto-routes to Ubuntu tab from both Tauri native (`/etc/os-release` `ID=ubuntu-studio`) and JS hash (`#ubuntu-studio`)
+- **Native Tauri execution** — when running as a built app, scripts can execute directly with live terminal output (dry-run or live), backed by `detect_platform`/`detect_pkg_managers`/`run_install` in Rust
+- **Architecture detection** — x86_64 / aarch64 badge, detected via Tauri natively or browser `userAgentData` as fallback
 
 ## Stack
 
 ```
 src/
-  index.html       — 10 OS tab structure, OpenRouter panel, header
-  app.js           — all data (JUMPSTART + CATS), state, generators (3000+ lines)
+  index.html       — 9 OS tab structure, OpenRouter panel, header
+  app.js           — all data (JUMPSTART + CATS), state, generators (~3000 lines)
   styles.css       — T1NK3R-V3R53 dark theme, OS color vars
-  tauri-bridge.js  — Tauri v2 ↔ browser fallback bridge, terminal output
+  tauri-bridge.js  — Tauri v2 ↔ browser fallback bridge, save/download, terminal output, native install runner
 
 src-tauri/
-  src/lib.rs       — Rust: detect_platform(), detect_pkg_managers(), run_install(), save_script()
-  Cargo.toml       — tauri v2, shell, dialog, fs, os, notification plugins
+  src/lib.rs       — Rust: detect_platform(), detect_pkg_managers(), get_home_dir(), get_downloads_dir(), save_script(), run_install()
+  capabilities/default.json — permission set (shell execute, dialog, fs read/write, os info, notifications)
+  Cargo.toml       — tauri v2, shell, dialog, fs, os, notification, opener plugins
   tauri.conf.json  — window config (1280×900), identifier com.tinkerverse.uni-staller
 ```
 
@@ -45,6 +47,19 @@ cargo tauri build
 ```
 
 Output binaries land in `src-tauri/target/release/bundle/`.
+
+## Linux AppImage packaging
+
+Two paths to a portable `.AppImage` (plus a `.deb`):
+
+**Local build** — `build-appimage-local.sh` installs system deps (webkit2gtk, gtk3, appindicator, librsvg, patchelf), installs Rust via rustup if missing (apt's rustc is too old for this project), runs `npm install`, then `npx tauri build --bundles appimage,deb`.
+
+```bash
+chmod +x build-appimage-local.sh
+./build-appimage-local.sh
+```
+
+**CI build** — `build-appimage.yml` (GitHub Actions) builds on `ubuntu-24.04` for every push to `main` and every `v*` tag, uploads the AppImage + deb as a workflow artifact, and drafts a GitHub Release with both files attached when a version tag is pushed.
 
 ## Calsifer (second machine)
 
